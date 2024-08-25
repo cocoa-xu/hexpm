@@ -44,11 +44,26 @@ config :phoenix, :stacktrace_depth, 20
 
 config :phoenix, :plug_init_mode, :runtime
 
+db_ip =
+  try do
+    hd(Tuple.to_list(System.cmd("getent", ["hosts", "db"]))) |> String.trim()
+  rescue
+    _ ->
+      ""
+  end
+
+db_ip =
+  if String.length(db_ip) == 0 do
+    "localhost"
+  else
+    db_ip
+  end
+
 config :hexpm, Hexpm.RepoBase,
   username: "postgres",
   password: "postgres",
-  database: "hexpm_dev",
-  hostname: "localhost",
+  database: "hexpm",
+  hostname: hd(String.split(db_ip, " ", trim: true)),
   pool_size: 5
 
 config :hexpm, Hexpm.Emails.Mailer, adapter: Bamboo.LocalAdapter

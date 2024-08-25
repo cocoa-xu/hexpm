@@ -1,5 +1,6 @@
 defmodule Hexpm.Application do
   use Application
+  require Ecto.Query
 
   def start(_type, _args) do
     topologies = cluster_topologies()
@@ -18,7 +19,8 @@ defmodule Hexpm.Application do
       goth_spec(),
       setup(),
       HexpmWeb.Telemetry,
-      HexpmWeb.Endpoint
+      HexpmWeb.Endpoint,
+      ci_setup()
     ]
 
     File.mkdir_p(Application.get_env(:hexpm, :tmp_dir))
@@ -60,6 +62,34 @@ defmodule Hexpm.Application do
       id: :task_setup,
       start: {Task, :start_link, [fun]},
       restart: :temporary
+    }
+  end
+
+  defp ci_setup() do
+    %{
+      id: :ci_setup,
+      restart: :temporary,
+      start: {Task, :start_link, [fn ->
+        user =
+          Hexpm.Accounts.User.build(
+            %{
+              "emails" => %{
+                "0" => %{
+                  "email" => "username@hex.pm",
+                  "email_confirmation" => "username@hex.pm"
+                }
+              },
+              "full_name" => "Hex User",
+              "password" => "password",
+              "password_confirmation" => "password",
+              "username" => "username"
+            },
+            true
+          )
+
+        Hexpm.Repo.insert_or_update(user)
+        nil
+      end]}
     }
   end
 
